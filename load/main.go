@@ -30,7 +30,9 @@ func main() {
 
 	flag.Parse()
 
+	// make Ctrl-C interruptible
 	ctx := interruptibleCxt()
+	// cancel requests when duration expired
 	if *durationPtr != 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, *durationPtr)
