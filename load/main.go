@@ -30,9 +30,9 @@ func main() {
 
 	flag.Parse()
 
-	// make Ctrl-C interruptible
+	// Make Ctrl-C interruptible
 	ctx := interruptibleCxt()
-	// cancel requests when duration expired
+	// Cancel requests when duration expired
 	if *durationPtr != 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, *durationPtr)
@@ -42,7 +42,7 @@ func main() {
 	Simulate(ctx, *urlPtr, []byte(*bodyPtr), *usersPtr, *delayPtr)
 }
 
-// TODO: migrate to main
+// TODO: Migrate to main
 func interruptibleCxt() context.Context {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)

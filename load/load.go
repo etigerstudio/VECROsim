@@ -11,14 +11,9 @@ import (
 )
 
 func Simulate(ctx context.Context, url string, body []byte, users int, delay time.Duration) {
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))  // TODO: configurable request methods
-	if err != nil {
-		panic(err)
-	}
-	
-	req = req.WithContext(ctx)
 	for i := 0; i < users; i++ {
-		go singleUser(req, delay, i)
+		// TODO: configurable request methods
+		go singleUser(ctx, "POST", body, url, delay, i)
 	}
 
 	select {
@@ -29,18 +24,24 @@ func Simulate(ctx context.Context, url string, body []byte, users int, delay tim
 	}
 }
 
-func singleUser(req *http.Request, delay time.Duration, id int) {
-	// perform one request immediately
-	performRequest(req, id)
+func singleUser(ctx context.Context, method string, body []byte, url string, delay time.Duration, id int) {
+	// Perform one request immediately
+	performRequest(ctx, method, body, url, id)
 
-	// perform requests after specified delay afterwards
+	// Perform requests after specified delay afterwards
 	t := time.NewTicker(delay)
 	for _ = range t.C {
-		performRequest(req, id)
+		performRequest(ctx, method, body, url, id)
 	}
 }
 
-func performRequest(req *http.Request, id int) {
+func performRequest(ctx context.Context, method string, body []byte, url string, id int) {
+	// Build request with context
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(body))
+	if err != nil {
+		panic(err)
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
@@ -55,7 +56,10 @@ func performRequest(req *http.Request, id int) {
 		}
 	} else {
 		// print "." when requested successfully
-		_, err = ioutil.ReadAll(resp.Body)
-		logger.Printf("[%d] .", id)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		logger.Printf("[%d]: %s", id, string(body))
 	}
 }
