@@ -1,0 +1,23 @@
+name: simple
+replicas: 1
+namespace: simple
+services: 
+  - name: a
+    type: vanilla
+    calls:
+      - b
+      - c
+  - name: b
+    type: cpu
+    calls:
+      - d
+  - name: c
+    type: io
+    calls:
+      - e
+  - name: d
+    type: io
+    calls:
+  - name: e
+    type: cpu
+    calls:
