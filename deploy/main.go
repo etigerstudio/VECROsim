@@ -40,7 +40,7 @@ func main() {
 
 	// Connect to Kubernetes & deploy services
 	clientset := getClientset(*kubeconfig)
-	base.CreateDeployment(clientset, sysdef)
+	base.CreateResources(clientset, sysdef)
 }
 
 func getClientset(kubeconfig string) *kubernetes.Clientset {
