@@ -30,9 +30,10 @@ func prepareSystemDefinition(def *SystemDefinition) {
 	// Prepare a map from names to services for faster searching
 	def.serviceMap = make(map[string]*Service, len(def.Services))
 
-	for i, svc := range def.Services {
-		svc.id = i
-		def.serviceMap[svc.Name] = &svc
+	for i := 0; i < len(def.Services); i += 1{
+		def.Services[i].id = i
+		def.Services[i].Port = baseListenPort + i
+		def.serviceMap[def.Services[i].Name] = &def.Services[i]
 	}
 }
 
@@ -71,7 +72,7 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 				{
 					// Currently there's no need to set a port name
 					//Name:          svc.Name + "-port",
-					ContainerPort: int32(baseListenPort + i),
+					ContainerPort: int32(svc.Port),
 					Protocol:      apiv1.ProtocolTCP,
 				},
 			},
@@ -94,7 +95,7 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 				},
 				{
 					Name:  listenAddressEnvKey,
-					Value: ":" + strconv.Itoa(baseListenPort + i),
+					Value: ":" + strconv.Itoa(svc.Port),
 				},
 			},
 		}
@@ -137,21 +138,19 @@ func prepareService(def SystemDefinition) *apiv1.Service {
 		Spec: apiv1.ServiceSpec{
 			Ports: make([]apiv1.ServicePort, len(def.Services)),
 			Selector: map[string]string{
-				"name": def.Name,
+				"app.kubernetes.io/name": def.Name,
 			},
 			Type: "ClusterIP",
 		},
 	}
 
 	for i, svc := range def.Services {
-		port := def.serviceMap[svc.Name].Port
-
 		service.Spec.Ports[i] = apiv1.ServicePort{
-			// Currently there's no need to set a port name
-			//Name:       "",
+			// Service names serve as endpoint names
+			Name:       svc.Name,
 			Protocol:   "TCP",
-			Port:       int32(port),
-			TargetPort: intstr.FromInt(port),
+			Port:       int32(def.serviceMap[svc.Name].Port),
+			TargetPort: intstr.FromInt(def.serviceMap[svc.Name].Port),
 		}
 	}
 
@@ -165,7 +164,7 @@ func commitService(serviceClient clientcorev1.ServiceInterface, service *apiv1.S
 func createService(clientset *kubernetes.Clientset, def SystemDefinition) {
 	service := prepareService(def)
 
-	fmt.Printf("%#v\n", service)
+	//fmt.Printf("%#v\n", service)
 	serviceClient := clientset.CoreV1().Services(def.Namespace)
 	result, err := commitService(serviceClient, service)
 	if err != nil {
@@ -183,7 +182,7 @@ func assembleCalls(calls []string, systemName string, namespace string, serviceM
 	for i, callee := range calls {
 		//"http://info-service.app.svc.cluster.local/info"
 		//"http://service-name.namespace.svc.cluster.local:port"
-		urls[i] = fmt.Sprintf("http://%s.%s.svc.cluster.local:%s", callee, systemName, namespace, serviceMap[callee].Port)
+		urls[i] = fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", systemName, namespace, serviceMap[callee].Port)
 	}
 
 	return strings.Join(urls, calleeSeparator)
