@@ -41,6 +41,10 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: def.Name,
+			Labels: map[string]string{
+				"app.kubernetes.io/name":       def.Name,
+				"app.kubernetes.io/managed-by": labelManagedBy,
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: int32Ptr(def.Replicas),
@@ -91,7 +95,7 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 				},
 				{
 					Name:  calleeEnvKey,
-					Value: assembleCalls(svc.Calls, def.Name, def.Namespace, def.serviceMap),
+					Value: assembleCalls(svc.Calls, def.Name, def.serviceMap),
 				},
 				{
 					Name:  listenAddressEnvKey,
@@ -173,7 +177,7 @@ func createService(clientset *kubernetes.Clientset, def SystemDefinition) {
 	fmt.Printf("Created service %q.\n", result.GetObjectMeta().GetName())
 }
 
-func assembleCalls(calls []string, systemName string, namespace string, serviceMap map[string]*Service) string {
+func assembleCalls(calls []string, systemName string, serviceMap map[string]*Service) string {
 	if len(calls) == 0 {
 		return ""
 	}
@@ -182,7 +186,7 @@ func assembleCalls(calls []string, systemName string, namespace string, serviceM
 	for i, callee := range calls {
 		//"http://info-service.app.svc.cluster.local/info"
 		//"http://service-name.namespace.svc.cluster.local:port"
-		urls[i] = fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", systemName, namespace, serviceMap[callee].Port)
+		urls[i] = fmt.Sprintf("http://%s:%d", systemName, serviceMap[callee].Port)
 	}
 
 	return strings.Join(urls, calleeSeparator)
