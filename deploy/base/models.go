@@ -4,11 +4,9 @@ type Service struct {
 	id int
 	Name string `json:"name"`
 	Subsystem string `json:"subsystem"`
-	Type string `json:"type"`
+	Workload `json:"workload"`
 	Calls []string `json:"calls"`
 	Port int
-	//Cluster string `json:"cluster"`
-	//Namespace string `json:"namespace"`
 }
 
 type SystemDefinition struct {
@@ -17,4 +15,15 @@ type SystemDefinition struct {
 	Services []Service `json:"services"`
 	serviceMap map[string]*Service
 	Namespace string `json:"namespace"`
+}
+
+type Workload struct {
+	CPU int `json:"cpu"`
+	IO int `json:"io"`
+	Delay `json:"delay"`
+}
+
+type Delay struct {
+	Duration int `json:"duration"`
+	Jitter int `json:"jitter"`
 }

@@ -3,21 +3,27 @@ replicas: 1
 namespace: simple
 services: 
   - name: a
-    type: vanilla
+    workload:
     calls:
       - b
       - c
   - name: b
-    type: cpu
+    workload:
+      cpu: 10
     calls:
       - d
   - name: c
-    type: io
+    workload:
+      cpu: 5
+      io: 10
     calls:
       - e
   - name: d
-    type: io
+    workload:
+      cpu: 5
+      io: 10
     calls:
   - name: e
-    type: cpu
+    workload:
+      cpu: 10
     calls:

@@ -21,7 +21,6 @@ const baseListenPort = 8080
 
 const nameEnvKey = "BEN_NAME"
 const subsystemEnvKey = "BEN_SUBSYSTEM"
-const serviceTypeEnvKey = "BEN_SERVICE_TYPE"
 const listenAddressEnvKey = "BEN_LISTEN_ADDRESS"
 const calleeEnvKey = "BEN_CALLS"
 const calleeSeparator = " "
@@ -90,10 +89,6 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 					Value: svc.Subsystem,
 				},
 				{
-					Name:  serviceTypeEnvKey,
-					Value: svc.Type,
-				},
-				{
 					Name:  calleeEnvKey,
 					Value: assembleCalls(svc.Calls, def.Name, def.serviceMap),
 				},
@@ -103,6 +98,9 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 				},
 			},
 		}
+
+		// Assemble service workload config to containers
+		container.Env = append(container.Env, svc.toWorkloadEnvVar()...)
 
 		deployment.Spec.Template.Spec.Containers[i] = container
 	}
