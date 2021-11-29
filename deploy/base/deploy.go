@@ -101,7 +101,6 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 
 		// Assemble service workload config to containers
 		container.Env = append(container.Env, svc.toWorkloadEnvVar()...)
-
 		deployment.Spec.Template.Spec.Containers[i] = container
 	}
 

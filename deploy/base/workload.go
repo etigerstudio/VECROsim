@@ -10,6 +10,7 @@ const (
 	workloadIOEnvKey            = "BEN_WORKLOAD_IO"
 	workloadDelayDurationEnvKey = "BEN_WORKLOAD_DELAY_DURATION"
 	workloadDelayJitterEnvKey   = "BEN_WORKLOAD_DELAY_JITTER"
+	workloadNetEnvKey           = "BEN_WORKLOAD_NET"
 )
 
 func (w Workload) toWorkloadEnvVar() []v1.EnvVar {
@@ -29,6 +30,10 @@ func (w Workload) toWorkloadEnvVar() []v1.EnvVar {
 		{
 			Name:  workloadDelayJitterEnvKey,
 			Value: strconv.Itoa(w.Delay.Jitter),
+		},
+		{
+			Name:  workloadNetEnvKey,
+			Value: strconv.Itoa(w.Net),
 		},
 	}
 }

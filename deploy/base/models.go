@@ -17,10 +17,12 @@ type SystemDefinition struct {
 	Namespace string `json:"namespace"`
 }
 
+// TODO: support memory or cache workload
 type Workload struct {
-	CPU int `json:"cpu"`
-	IO int `json:"io"`
-	Delay `json:"delay"`
+	CPU int `json:"cpu"` // CPU relative bogus operation number
+	IO int `json:"io"` // IO relative bogus operation number
+	Delay `json:"delay"` // Delay achieved by sleeping
+	Net int `json:"net"` // Network egress data payload size
 }
 
 type Delay struct {
