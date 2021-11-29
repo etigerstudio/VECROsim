@@ -1,0 +1,33 @@
+name: example
+replicas: 1
+namespace: example
+faults:
+  - name: frontend-downgrade
+    target: frontend
+    start: 30s
+    duration: 45s
+    behaviors:
+      net-delay:
+        time: 300ms
+        jitter: 50ms
+  - name: auth-downgrade
+    target: auth
+    start: 2min
+    duration: 45s
+    behaviors:
+      cpu-stress:
+        load: 100
+  - name: database-downgrade
+    target: database
+    start: 4min
+    duration: 45s
+    behaviors:
+      io-stress:
+        method: sync
+  - name: dashboard-freeze
+    target: dashboard
+    start: 6min
+    duration: 20s
+    behaviors:
+      net-loss:
+        percent: 40
