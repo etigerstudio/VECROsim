@@ -5,6 +5,7 @@ import (
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -40,6 +41,7 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: def.Name,
+			Namespace: def.Namespace,
 			Labels: map[string]string{
 				"app.kubernetes.io/name":       def.Name,
 				"app.kubernetes.io/managed-by": labelManagedBy,
@@ -95,6 +97,14 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 				{
 					Name:  listenAddressEnvKey,
 					Value: ":" + strconv.Itoa(svc.Port),
+				},
+			},
+			Resources: apiv1.ResourceRequirements{
+				Limits:   apiv1.ResourceList{
+					apiv1.ResourceCPU: resource.MustParse("100m"),
+				},
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU: resource.MustParse("10m"),
 				},
 			},
 		}
