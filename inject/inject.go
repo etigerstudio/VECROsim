@@ -40,6 +40,7 @@ func singleFault(jobsClient clientbatchv1.JobInterface, f Fault) {
 func createJob(jobsClient clientbatchv1.JobInterface, f Fault) {
 	job := prepareJob(f)
 
+	//fmt.Printf("%#v\n", job)
 	result, err := jobsClient.Create(context.TODO(), job, metav1.CreateOptions{})
 	if err != nil {
 		panic(err)
@@ -99,18 +100,21 @@ func prepareJob(f Fault) *batchv1.Job {
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      f.Name,
+			// Use GenerateName Field to make name unique for every job.
+			GenerateName: fmt.Sprintf("%s-", f.Name),
+			//Name:      f.Name,
 			Labels: map[string]string{
 				"app.kubernetes.io/name":       f.Name,
 				"app.kubernetes.io/managed-by": labelManagedBy,
 			},
 		},
 		Spec: batchv1.JobSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": f.Name,
-				},
-			},
+			// Selector for a job is not necessary.
+			//Selector: &metav1.LabelSelector{
+			//	MatchLabels: map[string]string{
+			//		"app.kubernetes.io/name": f.Name,
+			//	},
+			//},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      f.Name,
