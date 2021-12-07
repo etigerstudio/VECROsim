@@ -85,7 +85,7 @@ func interruptibleCxt() context.Context {
 	go func() {
 		defer cancel()
 		_ = <-sig
-		logger.Println("Load simulation cancelled.")
+		logger.Println("Fault simulation cancelled.")
 	}()
 
 	return ctx

@@ -31,7 +31,8 @@ func (fdef *FaultDefinition) Run(ctx context.Context, clientset *kubernetes.Clie
 }
 
 func singleFault(jobsClient clientbatchv1.JobInterface, f Fault) {
-	t := time.NewTimer(f.Duration.Duration)
+	t := time.NewTimer(f.Start.Duration)
+	fmt.Printf("Pending fault %s will be injected in %s.\n", f.Name, f.Start.Duration.String())
 	<-t.C
 
 	createJob(jobsClient, f)
