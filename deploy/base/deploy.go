@@ -101,7 +101,7 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 			},
 			Resources: apiv1.ResourceRequirements{
 				Limits:   apiv1.ResourceList{
-					apiv1.ResourceCPU: resource.MustParse("100m"),
+					apiv1.ResourceCPU: resource.MustParse("100m"),  // TODO: make more cpu resource available
 				},
 				Requests: apiv1.ResourceList{
 					apiv1.ResourceCPU: resource.MustParse("10m"),
@@ -138,9 +138,9 @@ func prepareService(def SystemDefinition) *apiv1.Service {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      def.Name,
 			Namespace: def.Namespace,
-			Annotations: map[string]string{
-				"prometheus.io/scrape": "true", // For Prometheus to scrape metrics
-			},
+			//Annotations: map[string]string{
+			//	"prometheus.io/scrape": "true", // For Prometheus to scrape metrics
+			//},
 			Labels: map[string]string{
 				"app.kubernetes.io/name":       def.Name,
 				"app.kubernetes.io/managed-by": labelManagedBy,
@@ -200,6 +200,8 @@ func assembleCalls(calls []string, systemName string, serviceMap map[string]*Ser
 }
 
 func CreateResources(clientset *kubernetes.Clientset, def SystemDefinition) {
+	// TODO: Create k8s namespace
+
 	prepareSystemDefinition(&def)
 	fmt.Printf("Creating deployment...")
 	createDeployment(clientset, def)

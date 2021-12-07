@@ -5,6 +5,7 @@ type Service struct {
 	Name string `json:"name"`
 	Subsystem string `json:"subsystem"`
 	Workload `json:"workload"`
+	Node string `json:"node"` // TODO: support multi-node
 	Calls []string `json:"calls"`
 	Port int
 }
@@ -17,7 +18,7 @@ type SystemDefinition struct {
 	Namespace string `json:"namespace"`
 }
 
-// TODO: support memory or cache workload
+// TODO: support memory or cpu cache workload
 type Workload struct {
 	CPU int `json:"cpu"` // CPU relative bogus operation number
 	IO int `json:"io"` // IO relative bogus operation number
