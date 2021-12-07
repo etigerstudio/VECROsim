@@ -1,0 +1,12 @@
+name: alphabet
+replicas: 1
+namespace: alphabet
+faults:
+  - name: k-delay
+    target: m
+    start: 30s
+    duration: 65s
+    behaviors:
+      net-delay:
+        time: 90ms
+        jitter: 9ms

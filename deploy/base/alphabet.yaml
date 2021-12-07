@@ -1,0 +1,172 @@
+name: alphabet
+replicas: 1
+namespace: alphabet
+services: 
+  - name: a
+    workload:
+      net: 128
+    calls:
+      - b
+      - c
+  - name: b
+    workload:
+      cpu: 1
+      io: 1
+      net: 4096
+    calls:
+      - e
+      - f
+  - name: c
+    workload:
+      cpu: 2
+      net: 4096
+    calls:
+      - d
+      - f
+      - g
+  - name: d
+    workload:
+      cpu: 1
+      net: 4096
+    calls:
+      - h
+  - name: e
+    workload:
+      io: 1
+      net: 4096
+    calls:
+      - o
+      - p
+  - name: f
+    workload:
+      cpu: 1
+      io: 1
+      net: 4096
+    calls:
+      - r
+  - name: g
+    workload:
+      cpu: 2
+      net: 4096
+    calls:
+      - j
+      - t
+      - u
+  - name: h
+    workload:
+      cpu: 1
+      net: 4096
+    calls:
+      - i
+  - name: i
+    workload:
+      io: 1
+      net: 4096
+    calls:
+      - j
+  - name: j
+    workload:
+      cpu: 1
+      io: 1
+      net: 4096
+    calls:
+      - k
+  - name: k
+    workload:
+      cpu: 2
+      net: 4096
+    calls:
+      - l
+      - m
+      - n
+  - name: l
+    workload:
+      cpu: 1
+      net: 4096
+    calls:
+  - name: m
+    workload:
+      io: 1
+      net: 4096
+    calls:
+  - name: n
+    workload:
+      cpu: 1
+      io: 1
+      net: 4096
+    calls:
+  - name: o
+    workload:
+      cpu: 2
+      net: 4096
+    calls:
+      - p
+  - name: p
+    workload:
+      cpu: 1
+      net: 4096
+    calls:
+      - q
+  - name: q
+    workload:
+      io: 1
+      net: 4096
+    calls:
+      - r
+  - name: r
+    workload:
+      cpu: 1
+      io: 1
+      net: 4096
+    calls:
+      - s
+      - v
+      - w
+  - name: s
+    workload:
+      cpu: 2
+      net: 4096
+    calls:
+  - name: t
+    workload:
+      cpu: 1
+      net: 4096
+    calls:
+      - w
+  - name: u
+    workload:
+      io: 1
+      net: 4096
+    calls:
+      - z
+  - name: v
+    workload:
+      cpu: 1
+      io: 1
+      net: 4096
+    calls:
+      - x
+  - name: w
+    workload:
+      cpu: 2
+      net: 4096
+    calls:
+      - x
+      - y
+  - name: x
+    workload:
+      cpu: 1
+      net: 4096
+    calls:
+  - name: y
+    workload:
+      io: 1
+      net: 4096
+    calls:
+      - z
+  - name: z
+    workload:
+      cpu: 1
+      net: 4096
+    calls:
+      - k

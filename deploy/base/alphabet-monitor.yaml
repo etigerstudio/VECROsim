@@ -1,0 +1,67 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: alphabet
+  namespace: monitoring
+  labels:
+    "app.kubernetes.io/managed-by": ben-sim
+spec:
+  selector:
+    matchLabels:
+      "app.kubernetes.io/name": alphabet
+  namespaceSelector:
+    matchNames:
+      - alphabet
+  endpoints:
+    - targetPort: 8080
+      interval: 5s
+    - targetPort: 8081
+      interval: 5s
+    - targetPort: 8082
+      interval: 5s
+    - targetPort: 8083
+      interval: 5s
+    - targetPort: 8084
+      interval: 5s
+    - targetPort: 8085
+      interval: 5s
+    - targetPort: 8086
+      interval: 5s
+    - targetPort: 8087
+      interval: 5s
+    - targetPort: 8088
+      interval: 5s
+    - targetPort: 8089
+      interval: 5s
+    - targetPort: 8090
+      interval: 5s
+    - targetPort: 8091
+      interval: 5s
+    - targetPort: 8092
+      interval: 5s
+    - targetPort: 8093
+      interval: 5s
+    - targetPort: 8094
+      interval: 5s
+    - targetPort: 8095
+      interval: 5s
+    - targetPort: 8096
+      interval: 5s
+    - targetPort: 8097
+      interval: 5s
+    - targetPort: 8098
+      interval: 5s
+    - targetPort: 8099
+      interval: 5s
+    - targetPort: 8100
+      interval: 5s
+    - targetPort: 8101
+      interval: 5s
+    - targetPort: 8102
+      interval: 5s
+    - targetPort: 8103
+      interval: 5s
+    - targetPort: 8104
+      interval: 5s
+    - targetPort: 8105
+      interval: 5s
