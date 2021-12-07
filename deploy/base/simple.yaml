@@ -4,26 +4,31 @@ namespace: simple
 services: 
   - name: a
     workload:
+      net: 128
     calls:
       - b
       - c
   - name: b
     workload:
       cpu: 10
+      net: 4096
     calls:
       - d
   - name: c
     workload:
       cpu: 5
       io: 10
+      net: 4096
     calls:
       - e
   - name: d
     workload:
       cpu: 5
       io: 10
+      net: 4096
     calls:
   - name: e
     workload:
       cpu: 10
+      net: 4096
     calls:
