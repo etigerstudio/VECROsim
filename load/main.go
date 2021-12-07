@@ -17,7 +17,7 @@ var tr http.RoundTripper = &http.Transport{
 }
 var client = &http.Client{
 	Transport: tr,
-	Timeout: 5 * time.Second,
+	Timeout: 15 * time.Second,
 }
 var logger = log.New(os.Stderr, "", 0)
 
