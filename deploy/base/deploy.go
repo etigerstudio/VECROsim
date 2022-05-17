@@ -18,7 +18,8 @@ import (
 
 const labelManagedBy = "ben-sim"
 const imageName = "ben-base:v1"
-const baseListenPort = 8080
+const baseListeningPort = 8080
+const baseExposedPort = 80
 
 const nameEnvKey = "BEN_NAME"
 const subsystemEnvKey = "BEN_SUBSYSTEM"
@@ -26,58 +27,60 @@ const listenAddressEnvKey = "BEN_LISTEN_ADDRESS"
 const calleeEnvKey = "BEN_CALLS"
 const calleeSeparator = " "
 
-func prepareSystemDefinition(def *SystemDefinition) {
-	// Prepare a map from names to services for faster searching
-	def.serviceMap = make(map[string]*Service, len(def.Services))
+const benServiceName = "ben-sim/service-name"
+const benServiceID = "ben-sim/service-id"
 
-	for i := 0; i < len(def.Services); i += 1{
-		def.Services[i].id = i
-		def.Services[i].Port = baseListenPort + i
-		def.serviceMap[def.Services[i].Name] = &def.Services[i]
-	}
+func prepareSystemDefinition(def *SystemDefinition) {
+	// Currently there's no need for preparation
 }
 
-func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: def.Name,
-			Namespace: def.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/name":       def.Name,
-				"app.kubernetes.io/managed-by": labelManagedBy,
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(def.Replicas),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": def.Name,
+func prepareDeployments(def SystemDefinition) []*appsv1.Deployment {
+	deployments := make([]*appsv1.Deployment, len(def.Services))
+	for i, svc := range def.Services {
+		deployment := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      def.Name + "-" + svc.Name,
+				Namespace: def.Namespace,
+				Labels: map[string]string{
+					"app.kubernetes.io/name":       def.Name,
+					"app.kubernetes.io/managed-by": labelManagedBy,
+					benServiceName:                 svc.Name,
+					benServiceID:                   strconv.Itoa(i),
 				},
 			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
+			Spec: appsv1.DeploymentSpec{
+				Replicas: int32Ptr(def.Replicas),
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
 						"app.kubernetes.io/name":       def.Name,
 						"app.kubernetes.io/managed-by": labelManagedBy,
+						benServiceName:                 svc.Name,
 					},
 				},
-				Spec: apiv1.PodSpec{
-					Containers: make([]apiv1.Container, len(def.Services)),
+				Template: apiv1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"app.kubernetes.io/name":       def.Name,
+							"app.kubernetes.io/managed-by": labelManagedBy,
+							benServiceName:                 svc.Name,
+							benServiceID:                   strconv.Itoa(i),
+						},
+					},
+					Spec: apiv1.PodSpec{
+						Containers: make([]apiv1.Container, 1),
+					},
 				},
 			},
-		},
-		Status: appsv1.DeploymentStatus{},
-	}
+			Status: appsv1.DeploymentStatus{},
+		}
 
-	for i, svc := range def.Services {
 		container := apiv1.Container{
 			Name:  svc.Name,
 			Image: imageName,
 			Ports: []apiv1.ContainerPort{
 				{
-					// Currently there's no need to set a port name
-					//Name:          svc.Name + "-port",
-					ContainerPort: int32(svc.Port),
+					Name:          svc.Name + "-port",
+					ContainerPort: int32(baseListeningPort),
 					Protocol:      apiv1.ProtocolTCP,
 				},
 			},
@@ -92,29 +95,31 @@ func prepareDeployment(def SystemDefinition) *appsv1.Deployment {
 				},
 				{
 					Name:  calleeEnvKey,
-					Value: assembleCalls(svc.Calls, def.Name, def.serviceMap),
+					Value: assembleCalls(svc.Calls, def.Name),
 				},
 				{
 					Name:  listenAddressEnvKey,
-					Value: ":" + strconv.Itoa(svc.Port),
+					Value: ":" + strconv.Itoa(baseListeningPort),
 				},
 			},
 			Resources: apiv1.ResourceRequirements{
-				Limits:   apiv1.ResourceList{
-					apiv1.ResourceCPU: resource.MustParse("100m"),  // TODO: make more cpu resource available
+				Limits: apiv1.ResourceList{
+					apiv1.ResourceCPU: resource.MustParse("750m"), // TODO: make cpu resource request & limit configurable
 				},
 				Requests: apiv1.ResourceList{
-					apiv1.ResourceCPU: resource.MustParse("10m"),
+					apiv1.ResourceCPU: resource.MustParse("100m"),
 				},
 			},
 		}
 
 		// Assemble service workload config to containers
 		container.Env = append(container.Env, svc.toWorkloadEnvVar()...)
-		deployment.Spec.Template.Spec.Containers[i] = container
+		deployment.Spec.Template.Spec.Containers[0] = container
+
+		deployments[i] = deployment
 	}
 
-	return deployment
+	return deployments
 }
 
 func commitDeployment(deploymentsClient clientappsv1.DeploymentInterface, deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
@@ -122,50 +127,59 @@ func commitDeployment(deploymentsClient clientappsv1.DeploymentInterface, deploy
 }
 
 func createDeployment(clientset *kubernetes.Clientset, def SystemDefinition) {
-	deployment := prepareDeployment(def)
+	deployments := prepareDeployments(def)
 
-	//fmt.Printf("%#v\n", deployment)
+	//fmt.Printf("%#v\n", deployments)
 	deploymentsClient := clientset.AppsV1().Deployments(def.Namespace)
-	result, err := commitDeployment(deploymentsClient, deployment)
-	if err != nil {
-		panic(err)
+	for i, deployment := range deployments {
+		result, err := commitDeployment(deploymentsClient, deployment)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("- Created deployment %d: %q.\n", i, result.GetObjectMeta().GetName())
 	}
-	fmt.Printf("Created deployment %q.\n", result.GetObjectMeta().GetName())
+	fmt.Printf("Created deployments for %q.\n", def.Name)
 }
 
-func prepareService(def SystemDefinition) *apiv1.Service {
-	service := &apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      def.Name,
-			Namespace: def.Namespace,
-			//Annotations: map[string]string{
-			//	"prometheus.io/scrape": "true", // For Prometheus to scrape metrics
-			//},
-			Labels: map[string]string{
-				"app.kubernetes.io/name":       def.Name,
-				"app.kubernetes.io/managed-by": labelManagedBy,
-			},
-		},
-		Spec: apiv1.ServiceSpec{
-			Ports: make([]apiv1.ServicePort, len(def.Services)),
-			Selector: map[string]string{
-				"app.kubernetes.io/name": def.Name,
-			},
-			Type: "ClusterIP",
-		},
-	}
+func prepareServices(def SystemDefinition) []*apiv1.Service {
+	services := make([]*apiv1.Service, len(def.Services))
 
 	for i, svc := range def.Services {
-		service.Spec.Ports[i] = apiv1.ServicePort{
-			// Service names serve as endpoint names
-			Name:       svc.Name,
-			Protocol:   "TCP",
-			Port:       int32(def.serviceMap[svc.Name].Port),
-			TargetPort: intstr.FromInt(def.serviceMap[svc.Name].Port),
+		service := &apiv1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      def.Name + "-" + svc.Name,
+				Namespace: def.Namespace,
+				//Annotations: map[string]string{
+				//	"prometheus.io/scrape": "true", // For Prometheus to scrape metrics
+				//},
+				Labels: map[string]string{
+					"app.kubernetes.io/name":       def.Name,
+					"app.kubernetes.io/managed-by": labelManagedBy,
+				},
+			},
+			Spec: apiv1.ServiceSpec{
+				Ports: []apiv1.ServicePort{
+					{
+						// Service names serve as endpoint names
+						Name:       svc.Name,
+						Protocol:   "TCP",
+						Port:       int32(baseExposedPort),
+						TargetPort: intstr.FromInt(baseListeningPort),
+					},
+				},
+				Selector: map[string]string{
+					"app.kubernetes.io/name":       def.Name,
+					"app.kubernetes.io/managed-by": labelManagedBy,
+					benServiceName:                 svc.Name,
+				},
+				Type: "ClusterIP",
+			},
 		}
+
+		services[i] = service
 	}
 
-	return service
+	return services
 }
 
 func commitService(serviceClient clientcorev1.ServiceInterface, service *apiv1.Service) (*apiv1.Service, error) {
@@ -173,27 +187,30 @@ func commitService(serviceClient clientcorev1.ServiceInterface, service *apiv1.S
 }
 
 func createService(clientset *kubernetes.Clientset, def SystemDefinition) {
-	service := prepareService(def)
+	services := prepareServices(def)
 
 	//fmt.Printf("%#v\n", service)
 	serviceClient := clientset.CoreV1().Services(def.Namespace)
-	result, err := commitService(serviceClient, service)
-	if err != nil {
-		panic(err)
+	for i, service := range services {
+		result, err := commitService(serviceClient, service)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("- Created service %d: %q.\n", i, result.GetObjectMeta().GetName())
 	}
-	fmt.Printf("Created service %q.\n", result.GetObjectMeta().GetName())
+	fmt.Printf("Created services for %q.\n", def.Name)
 }
 
-func assembleCalls(calls []string, systemName string, serviceMap map[string]*Service) string {
+func assembleCalls(calls []string, systemName string) string {
 	if len(calls) == 0 {
 		return ""
 	}
 
 	urls := make([]string, len(calls))
-	for i, callee := range calls {
+	for i, call := range calls {
 		//"http://info-service.app.svc.cluster.local/info"
 		//"http://service-name.namespace.svc.cluster.local:port"
-		urls[i] = fmt.Sprintf("http://%s:%d", systemName, serviceMap[callee].Port)
+		urls[i] = fmt.Sprintf("http://%s-%s", systemName, call)
 	}
 
 	return strings.Join(urls, calleeSeparator)
@@ -203,9 +220,9 @@ func CreateResources(clientset *kubernetes.Clientset, def SystemDefinition) {
 	// TODO: Create k8s namespace
 
 	prepareSystemDefinition(&def)
-	fmt.Printf("Creating deployment...")
+	fmt.Printf("Creating deployment...\n")
 	createDeployment(clientset, def)
-	fmt.Printf("Done.\nCreating service...")
+	fmt.Printf("Done.\nCreating service...\n")
 	createService(clientset, def)
 	fmt.Printf("Done.\n")
 
