@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 )
 
@@ -21,10 +22,12 @@ var client = &http.Client{
 }
 var logger = log.New(os.Stderr, "", 0)
 
+const urlSeparator  = " "
+
 func main() {
 	usersPtr := flag.Int("users", 1, "Number of concurrent users")
 	delayPtr := flag.Duration("delay", time.Second, "Delay between calls per user (ms)")
-	urlPtr := flag.String("url", "http://127.0.0.1", "URL to perform requests on")
+	urlListPtr := flag.String("url", "http://127.0.0.1", "URLs to perform requests on.\nSeparate each URLs by a whitespace if there're multiple URLs to request on.\n")
 	bodyPtr := flag.String("body", "", "Request body")
 	durationPtr := flag.Duration("duration", 0, "Duration of this load simulation")
 
@@ -39,7 +42,15 @@ func main() {
 		defer cancel()
 	}
 
-	Simulate(ctx, *urlPtr, []byte(*bodyPtr), *usersPtr, *delayPtr)
+	Simulate(ctx, parseURLList(urlListPtr), []byte(*bodyPtr), *usersPtr, *delayPtr)
+}
+
+func parseURLList(str *string) []string {
+	if *str == "" {
+		panic("empty URL given")
+	}
+
+	return strings.Split(*str, urlSeparator)
 }
 
 // TODO: Migrate to main

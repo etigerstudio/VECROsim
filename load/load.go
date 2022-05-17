@@ -10,10 +10,15 @@ import (
 	"time"
 )
 
-func Simulate(ctx context.Context, url string, body []byte, users int, delay time.Duration) {
-	for i := 0; i < users; i++ {
-		// TODO: configurable request methods
-		go singleUser(ctx, "POST", body, url, delay, i)
+func Simulate(ctx context.Context, urlList []string, body []byte, users int, delay time.Duration) {
+	for _, url := range urlList{
+		for i := 0; i < users; i++ {
+			// TODO: configurable request methods
+			go singleUser(ctx, "POST", body, url, delay, i)
+		}
+
+		// Sleep a little while to avoid congestion
+		time.Sleep(time.Duration(int(delay) / (len(url) + 1)))
 	}
 
 	select {
