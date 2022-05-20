@@ -91,7 +91,7 @@ func prepareDeployments(def SystemDefinition) []*appsv1.Deployment {
 				},
 				{
 					Name:  subsystemEnvKey,
-					Value: svc.Subsystem,
+					Value: def.Name,
 				},
 				{
 					Name:  calleeEnvKey,

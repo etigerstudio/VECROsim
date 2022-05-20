@@ -3,7 +3,6 @@ package base
 type Service struct {
 	id int
 	Name string `json:"name"`
-	Subsystem string `json:"subsystem"`
 	Workload `json:"workload"`
 	Node string `json:"node"` // TODO: support multi-node
 	Calls []string `json:"calls"`
