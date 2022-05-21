@@ -153,9 +153,11 @@ func prepareContainers(svc Service, sysName string) []apiv1.Container {
 			Resources: apiv1.ResourceRequirements{
 				Limits: apiv1.ResourceList{
 					apiv1.ResourceCPU: resource.MustParse("1000m"), // TODO: make cpu resource request & limit configurable
+					apiv1.ResourceMemory: resource.MustParse("250Mi"),
 				},
 				Requests: apiv1.ResourceList{
 					apiv1.ResourceCPU: resource.MustParse("200m"),
+					apiv1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 			},
 		}
@@ -192,9 +194,11 @@ func prepareContainers(svc Service, sysName string) []apiv1.Container {
 			Resources: apiv1.ResourceRequirements{
 				Limits: apiv1.ResourceList{
 					apiv1.ResourceCPU: resource.MustParse("1000m"), // TODO: make cpu resource request & limit configurable
+					apiv1.ResourceMemory: resource.MustParse("1.25Gi"),
 				},
 				Requests: apiv1.ResourceList{
 					apiv1.ResourceCPU: resource.MustParse("100m"),
+					apiv1.ResourceMemory: resource.MustParse("250Mi"),
 				},
 			},
 		}
