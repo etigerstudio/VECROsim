@@ -4,6 +4,7 @@ type Service struct {
 	id int
 	Name string `json:"name"`
 	Workload `json:"workload"`
+	Type string `json:"type"`
 	Node string `json:"node"` // TODO: support multi-node
 	Calls []string `json:"calls"`
 }
@@ -21,6 +22,9 @@ type Workload struct {
 	IO int `json:"io"` // IO relative bogus operation number
 	Delay `json:"delay"` // Delay achieved by sleeping
 	Net int `json:"net"` // Network egress data payload size
+	Memory int `json:"memory"` // Memory object allocation size
+	Read int `json:"read"` // Database read operation number
+	Write int `json:"write"` // Database write operation number
 }
 
 type Delay struct {

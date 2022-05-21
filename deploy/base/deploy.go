@@ -17,7 +17,8 @@ import (
 )
 
 const labelManagedBy = "ben-sim"
-const imageName = "ben-base:v1"
+const baseImageName = "ben-base:v1"
+const mongoDBImageName = "ben-mongodb:v1"
 const baseListeningPort = 8080
 const baseExposedPort = 80
 
@@ -67,16 +68,57 @@ func prepareDeployments(def SystemDefinition) []*appsv1.Deployment {
 						},
 					},
 					Spec: apiv1.PodSpec{
-						Containers: make([]apiv1.Container, 1),
+						Containers: prepareContainers(svc, def.Name),
+						Volumes: prepareVolumes(svc),
 					},
 				},
 			},
 			Status: appsv1.DeploymentStatus{},
 		}
 
+		deployments[i] = deployment
+	}
+
+	return deployments
+}
+
+func prepareVolumes(svc Service) []apiv1.Volume {
+	volumes := make([]apiv1.Volume, 0)
+	switch svc.Type {
+	case "base":
+		volume := apiv1.Volume{
+			Name:         "tmp-io-dir",
+			VolumeSource: apiv1.VolumeSource{
+				EmptyDir: &apiv1.EmptyDirVolumeSource{},
+			},
+		}
+		volumes = append(volumes, volume)
+
+	case "mongodb":
+		volume := apiv1.Volume{
+			Name:         "init-script",
+			VolumeSource: apiv1.VolumeSource{
+				ConfigMap: &apiv1.ConfigMapVolumeSource{
+					LocalObjectReference: apiv1.LocalObjectReference{
+						Name: "mongo-initjs",
+					},
+				},
+			},
+		}
+		volumes = append(volumes, volume)
+	}
+	
+	return volumes
+}
+
+func prepareContainers(svc Service, sysName string) []apiv1.Container {
+	containers := make([]apiv1.Container, 0)
+
+	switch svc.Type {
+	case "base":
 		container := apiv1.Container{
 			Name:  svc.Name,
-			Image: imageName,
+			Image: baseImageName,
 			Ports: []apiv1.ContainerPort{
 				{
 					Name:          svc.Name + "-port",
@@ -91,11 +133,56 @@ func prepareDeployments(def SystemDefinition) []*appsv1.Deployment {
 				},
 				{
 					Name:  subsystemEnvKey,
-					Value: def.Name,
+					Value: sysName,
 				},
 				{
 					Name:  calleeEnvKey,
-					Value: assembleCalls(svc.Calls, def.Name),
+					Value: assembleCalls(svc.Calls, sysName),
+				},
+				{
+					Name:  listenAddressEnvKey,
+					Value: ":" + strconv.Itoa(baseListeningPort),
+				},
+			},
+			VolumeMounts: []apiv1.VolumeMount{
+				{
+					Name:      "tmp-io-dir",
+					MountPath: "/tmp/ben-base-io",
+				},
+			},
+			Resources: apiv1.ResourceRequirements{
+				Limits: apiv1.ResourceList{
+					apiv1.ResourceCPU: resource.MustParse("1000m"), // TODO: make cpu resource request & limit configurable
+				},
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU: resource.MustParse("200m"),
+				},
+			},
+		}
+
+		// Assemble service workload config to base container
+		container.Env = append(container.Env, svc.toWorkloadEnvVar()...)
+		containers = append(containers, container)
+
+	case "mongodb":
+		baseContainer := apiv1.Container{
+			Name:  svc.Name + "-agent",
+			Image: mongoDBImageName,
+			Ports: []apiv1.ContainerPort{
+				{
+					Name:          svc.Name + "-port",
+					ContainerPort: int32(baseListeningPort),
+					Protocol:      apiv1.ProtocolTCP,
+				},
+			},
+			Env: []apiv1.EnvVar{
+				{
+					Name:  nameEnvKey,
+					Value: svc.Name,
+				},
+				{
+					Name:  subsystemEnvKey,
+					Value: sysName,
 				},
 				{
 					Name:  listenAddressEnvKey,
@@ -104,7 +191,7 @@ func prepareDeployments(def SystemDefinition) []*appsv1.Deployment {
 			},
 			Resources: apiv1.ResourceRequirements{
 				Limits: apiv1.ResourceList{
-					apiv1.ResourceCPU: resource.MustParse("750m"), // TODO: make cpu resource request & limit configurable
+					apiv1.ResourceCPU: resource.MustParse("1000m"), // TODO: make cpu resource request & limit configurable
 				},
 				Requests: apiv1.ResourceList{
 					apiv1.ResourceCPU: resource.MustParse("100m"),
@@ -112,14 +199,48 @@ func prepareDeployments(def SystemDefinition) []*appsv1.Deployment {
 			},
 		}
 
-		// Assemble service workload config to containers
-		container.Env = append(container.Env, svc.toWorkloadEnvVar()...)
-		deployment.Spec.Template.Spec.Containers[0] = container
-
-		deployments[i] = deployment
+		mongoDBContainer := apiv1.Container{
+			Name:  svc.Name + "-mongodb",
+			Image: "mongo",
+			Ports: []apiv1.ContainerPort{
+				{
+					Name:          "mongodb-port",
+					ContainerPort: 27017,
+					Protocol:      apiv1.ProtocolTCP,
+				},
+			},
+			Env: []apiv1.EnvVar{
+				{
+					Name:  "MONGO_INITDB_ROOT_USERNAME",
+					Value: "root",
+				},
+				{
+					Name:  "MONGO_INITDB_ROOT_PASSWORD",
+					Value: "password",
+				},
+			},
+			VolumeMounts: []apiv1.VolumeMount{
+				{
+					Name:      "init-script",
+					MountPath: "/docker-entrypoint-initdb.d/mongo-init.js",
+				},
+			},
+			Resources: apiv1.ResourceRequirements{
+				Limits: apiv1.ResourceList{
+					apiv1.ResourceCPU: resource.MustParse("1000m"), // TODO: make cpu resource request & limit configurable
+				},
+				Requests: apiv1.ResourceList{
+					apiv1.ResourceCPU: resource.MustParse("250m"),
+				},
+			},
+		}
+		
+		// Assemble service workload config to mongodb container
+		baseContainer.Env = append(baseContainer.Env, svc.toWorkloadEnvVar()...)
+		containers = append(containers, baseContainer, mongoDBContainer)
 	}
 
-	return deployments
+	return containers
 }
 
 func commitDeployment(deploymentsClient clientappsv1.DeploymentInterface, deployment *appsv1.Deployment) (*appsv1.Deployment, error) {

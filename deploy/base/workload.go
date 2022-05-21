@@ -11,6 +11,9 @@ const (
 	workloadDelayDurationEnvKey = "BEN_WORKLOAD_DELAY_DURATION"
 	workloadDelayJitterEnvKey   = "BEN_WORKLOAD_DELAY_JITTER"
 	workloadNetEnvKey           = "BEN_WORKLOAD_NET"
+	workloadMemoryEnvKey        = "BEN_WORKLOAD_MEMORY"
+	dbReadOpsEnvKey     		= "BEN_DB_READ_OPS"
+	dbWriteOpsEnvKey    		= "BEN_DB_WRITE_OPS"
 )
 
 func (w Workload) toWorkloadEnvVar() []v1.EnvVar {
@@ -34,6 +37,18 @@ func (w Workload) toWorkloadEnvVar() []v1.EnvVar {
 		{
 			Name:  workloadNetEnvKey,
 			Value: strconv.Itoa(w.Net),
+		},
+		{
+			Name:  workloadMemoryEnvKey,
+			Value: strconv.Itoa(w.Memory),
+		},
+		{
+			Name:  dbReadOpsEnvKey,
+			Value: strconv.Itoa(w.Read),
+		},
+		{
+			Name:  dbWriteOpsEnvKey,
+			Value: strconv.Itoa(w.Write),
 		},
 	}
 }
