@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: social
+  namespace: monitoring
+  labels:
+    "app.kubernetes.io/managed-by": ben-sim
+spec:
+  namespaceSelector:
+    matchNames:
+      - social
+  selector:
+    matchLabels:
+      "app.kubernetes.io/name": social
+      "app.kubernetes.io/managed-by": ben-sim
+  endpoints:
+    - targetPort: 8080
+      interval: 1s

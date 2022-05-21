@@ -1,0 +1,177 @@
+name: social
+replicas: 1
+namespace: social
+services:
+  - name: follow-user
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - user-info
+  - name: recommender
+    type: base
+    workload:
+      cpu: 1
+      memory: 16
+      net: 512
+    calls:
+      - user-info
+      - posts-storage
+  - name: unique-id
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - compose-post
+  - name: url-shorten
+    type: base
+    workload:
+      cpu: 2
+      net: 256
+    calls:
+      - compose-post
+  - name: video
+    type: base
+    workload:
+      cpu: 1
+      memory: 32
+      net: 256
+    calls:
+      - compose-post
+  - name: image
+    type: base
+    workload:
+      memory: 16
+      cpu: 1
+      net: 256
+    calls:
+      - compose-post
+  - name: text
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - compose-post
+  - name: user-tag
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - compose-post
+  - name: favorite
+    type: base
+    workload:
+      cpu: 1
+      net: 512
+    calls:
+      - write-timeline
+  - name: search
+    type: base
+    workload:
+      cpu: 2
+      net: 512
+    calls:
+      - posts-storage-db
+  - name: ads
+    type: base
+    workload:
+      cpu: 1
+      memory: 16
+      net: 1024
+    calls:
+      - user-info
+      - posts-storage
+  - name: read-post
+    type: base
+    workload:
+      cpu: 1
+      memory: 16
+      net: 512
+    calls:
+      - login
+      - read-timeline
+      - posts-storage
+      - blocked-users
+  - name: login
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - user-info
+  - name: compose-post
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - login
+      - write-timeline
+      - posts-storage
+      - write-graph
+  - name: blocked-users
+    type: base
+    workload:
+      cpu: 1
+      net: 64
+  - name: read-timeline
+    type: base
+    workload:
+      cpu: 1
+      net: 512
+    calls:
+      - read-timeline-db
+  - name: user-info
+    type: base
+    workload:
+      cpu: 1
+      net: 512
+    calls:
+      - user-info-db
+  - name: posts-storage
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - posts-storage-db
+  - name: write-timeline
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - write-timeline-db
+  - name: write-graph
+    type: base
+    workload:
+      cpu: 1
+      net: 256
+    calls:
+      - write-graph-db
+  - name: read-timeline-db
+    type: mongodb
+    workload:
+      read: 1
+  - name: user-info-db
+    type: mongodb
+    workload:
+      read: 1
+  - name: posts-storage-db
+    type: mongodb
+    workload:
+      read: 1
+      write: 1
+  - name: write-timeline-db
+    type: mongodb
+    workload:
+      write: 1
+  - name: write-graph-db
+    type: mongodb
+    workload:
+      write: 1
+    calls:
