@@ -121,7 +121,8 @@ func prepareContainers(svc Service, sysName string) []apiv1.Container {
 			Image: baseImageName,
 			Ports: []apiv1.ContainerPort{
 				{
-					Name:          svc.Name + "-port",
+					// No longer set port names because it doesn't support name longer than 15 characters.
+					//Name:          svc.Name + "-port",
 					ContainerPort: int32(baseListeningPort),
 					Protocol:      apiv1.ProtocolTCP,
 				},
@@ -172,7 +173,7 @@ func prepareContainers(svc Service, sysName string) []apiv1.Container {
 			Image: mongoDBImageName,
 			Ports: []apiv1.ContainerPort{
 				{
-					Name:          svc.Name + "-port",
+					//Name:          svc.Name + "-port",
 					ContainerPort: int32(baseListeningPort),
 					Protocol:      apiv1.ProtocolTCP,
 				},
@@ -286,7 +287,7 @@ func prepareServices(def SystemDefinition) []*apiv1.Service {
 				Ports: []apiv1.ServicePort{
 					{
 						// Service names serve as endpoint names
-						Name:       svc.Name,
+						//Name:       svc.Name,
 						Protocol:   "TCP",
 						Port:       int32(baseExposedPort),
 						TargetPort: intstr.FromInt(baseListeningPort),
