@@ -1,0 +1,19 @@
+kind: NetworkChaos
+apiVersion: chaos-mesh.org/v1alpha1
+metadata:
+  namespace: social
+  name: social-delay
+spec:
+  selector:
+    namespaces:
+      - social
+    labelSelectors:
+      ben-sim/service-name: posts-storage-db
+  mode: all
+  action: delay
+  duration: 30m
+  delay:
+    latency: 400ms
+    correlation: '25'
+    jitter: 150ms
+  direction: to
