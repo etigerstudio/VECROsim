@@ -1,4 +1,4 @@
-module BenSim
+module vecro-sim
 
 go 1.17
 

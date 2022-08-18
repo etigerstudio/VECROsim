@@ -8,7 +8,7 @@ spec:
     namespaces:
       - social
     labelSelectors:
-      ben-sim/service-name: posts-storage-db
+      vecro-sim/service-name: posts-storage-db
   mode: all
   action: delay
   duration: 30m

@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const labelManagedBy = "ben-sim"
+const labelManagedBy = "vecro-sim"
 
 func (fdef *FaultDefinition) Run(ctx context.Context, clientset *kubernetes.Clientset) {
 	jobsClient := clientset.BatchV1().Jobs(fdef.Namespace)

@@ -4,7 +4,7 @@ metadata:
   name: social
   namespace: monitoring
   labels:
-    "app.kubernetes.io/managed-by": ben-sim
+    "app.kubernetes.io/managed-by": vecro-sim
 spec:
   namespaceSelector:
     matchNames:
@@ -12,7 +12,7 @@ spec:
   selector:
     matchLabels:
       "app.kubernetes.io/name": social
-      "app.kubernetes.io/managed-by": ben-sim
+      "app.kubernetes.io/managed-by": vecro-sim
   endpoints:
     - targetPort: 8080
       interval: 1s

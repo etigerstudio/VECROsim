@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-const labelManagedBy = "ben-sim"
+const labelManagedBy = "vecro-sim"
 const baseImageName = "ben-base:v1"
 const mongoDBImageName = "ben-mongodb:v1"
 const baseListeningPort = 8080
@@ -28,8 +28,8 @@ const listenAddressEnvKey = "BEN_LISTEN_ADDRESS"
 const calleeEnvKey = "BEN_CALLS"
 const calleeSeparator = " "
 
-const benServiceName = "ben-sim/service-name"
-const benServiceID = "ben-sim/service-id"
+const benServiceName = "vecro-sim/service-name"
+const benServiceID = "vecro-sim/service-id"
 
 func prepareSystemDefinition(def *SystemDefinition) {
 	// Currently there's no need for preparation

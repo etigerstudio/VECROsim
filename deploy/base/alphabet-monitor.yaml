@@ -4,7 +4,7 @@ metadata:
   name: alphabet
   namespace: monitoring
   labels:
-    "app.kubernetes.io/managed-by": ben-sim
+    "app.kubernetes.io/managed-by": vecro-sim
 spec:
   selector:
     matchLabels:
