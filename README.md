@@ -2,6 +2,19 @@
 
 Welcome to the documentation of VECROsim (a Versatile Metric-oriented Microservice Fault Simulation System). VECROsim supports flexible microservice topology and scenario-rich fault injection and comes with built-in performance metrics collection capability. Here you will find how to use VECROsim to design and deploy a microservice system, inject faults and collect metrics.
 
+#### To cite this work:
+
+```tex
+@inproceedings{bi2022vecrosim,
+  title={VECROsim: A Versatile Metric-oriented Microservice Fault Simulation System (Tools and Artifact Track)},
+  author={Bi, Tingzhu and Pan, Yicheng and Jiang, Xinrui and Ma, Meng and Wang, Ping},
+  booktitle={2022 IEEE 33rd International Symposium on Software Reliability Engineering (ISSRE)},
+  pages={297--308},
+  year={2022},
+  organization={IEEE}
+}
+```
+
 # Quick Start Guide
 
 ## Prerequisite
