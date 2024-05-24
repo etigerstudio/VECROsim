@@ -1,7 +1,7 @@
 package main
 
 import (
-	"BenSim/inject/faults"
+	"vecro-sim/inject/faults"
 	"context"
 	"errors"
 	"fmt"

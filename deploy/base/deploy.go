@@ -17,15 +17,15 @@ import (
 )
 
 const labelManagedBy = "vecro-sim"
-const baseImageName = "ben-base:v1"
-const mongoDBImageName = "ben-mongodb:v1"
+const baseImageName = "vecro-base:v1"
+const mongoDBImageName = "vecro-mongodb:v1"
 const baseListeningPort = 8080
 const baseExposedPort = 80
 
-const nameEnvKey = "BEN_NAME"
-const subsystemEnvKey = "BEN_SUBSYSTEM"
-const listenAddressEnvKey = "BEN_LISTEN_ADDRESS"
-const calleeEnvKey = "BEN_CALLS"
+const nameEnvKey = "VECRO_NAME"
+const subsystemEnvKey = "VECRO_SUBSYSTEM"
+const listenAddressEnvKey = "VECRO_LISTEN_ADDRESS"
+const calleeEnvKey = "VECRO_CALLS"
 const calleeSeparator = " "
 
 const benServiceName = "vecro-sim/service-name"
@@ -153,7 +153,7 @@ func prepareContainers(svc Service, sysName string) []apiv1.Container {
 			},
 			Resources: apiv1.ResourceRequirements{
 				Limits: apiv1.ResourceList{
-					apiv1.ResourceCPU: resource.MustParse("1000m"), // TODO: make cpu resource request & limit configurable
+					apiv1.ResourceCPU: resource.MustParse("700m"), // TODO: make cpu resource request & limit configurable
 					apiv1.ResourceMemory: resource.MustParse("250Mi"),
 				},
 				Requests: apiv1.ResourceList{
@@ -206,7 +206,7 @@ func prepareContainers(svc Service, sysName string) []apiv1.Container {
 
 		mongoDBContainer := apiv1.Container{
 			Name:  svc.Name + "-mongodb",
-			Image: "mongo",
+			Image: "mongo:4.2",
 			Ports: []apiv1.ContainerPort{
 				{
 					Name:          "mongodb-port",

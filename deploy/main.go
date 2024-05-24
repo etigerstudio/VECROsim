@@ -1,7 +1,7 @@
 package main
 
 import (
-	"BenSim/deploy/base"
+	"vecro-sim/deploy/base"
 	"flag"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/yaml"

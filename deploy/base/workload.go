@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	workloadCPUEnvKey           = "BEN_WORKLOAD_CPU"
-	workloadIOEnvKey            = "BEN_WORKLOAD_IO"
-	workloadDelayDurationEnvKey = "BEN_WORKLOAD_DELAY_DURATION"
-	workloadDelayJitterEnvKey   = "BEN_WORKLOAD_DELAY_JITTER"
-	workloadNetEnvKey           = "BEN_WORKLOAD_NET"
-	workloadMemoryEnvKey        = "BEN_WORKLOAD_MEMORY"
-	dbReadOpsEnvKey     		= "BEN_DB_READ_OPS"
-	dbWriteOpsEnvKey    		= "BEN_DB_WRITE_OPS"
+	workloadCPUEnvKey           = "VECRO_WORKLOAD_CPU"
+	workloadIOEnvKey            = "VECRO_WORKLOAD_IO"
+	workloadDelayDurationEnvKey = "VECRO_WORKLOAD_DELAY_DURATION"
+	workloadDelayJitterEnvKey   = "VECRO_WORKLOAD_DELAY_JITTER"
+	workloadNetEnvKey           = "VECRO_WORKLOAD_NET"
+	workloadMemoryEnvKey        = "VECRO_WORKLOAD_MEMORY"
+	dbReadOpsEnvKey     		= "VECRO_DB_READ_OPS"
+	dbWriteOpsEnvKey    		= "VECRO_DB_WRITE_OPS"
 )
 
 func (w Workload) toWorkloadEnvVar() []v1.EnvVar {
