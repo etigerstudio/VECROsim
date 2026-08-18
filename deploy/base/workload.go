@@ -8,7 +8,7 @@ import (
 const (
 	workloadCPUEnvKey           = "VECRO_WORKLOAD_CPU"
 	workloadIOEnvKey            = "VECRO_WORKLOAD_IO"
-	workloadDelayDurationEnvKey = "VECRO_WORKLOAD_DELAY_DURATION"
+	workloadDelayTimeEnvKey     = "VECRO_WORKLOAD_DELAY_TIME"
 	workloadDelayJitterEnvKey   = "VECRO_WORKLOAD_DELAY_JITTER"
 	workloadNetEnvKey           = "VECRO_WORKLOAD_NET"
 	workloadMemoryEnvKey        = "VECRO_WORKLOAD_MEMORY"
@@ -27,7 +27,7 @@ func (w Workload) toWorkloadEnvVar() []v1.EnvVar {
 			Value: strconv.Itoa(w.IO),
 		},
 		{
-			Name:  workloadDelayDurationEnvKey,
+			Name:  workloadDelayTimeEnvKey,
 			Value: strconv.Itoa(w.Delay.Duration),
 		},
 		{
