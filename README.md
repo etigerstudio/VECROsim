@@ -1,307 +1,180 @@
-# Introduction
+# 🧪 VECROsim
 
-Welcome to the documentation of VECROsim (a Versatile Metric-oriented Microservice Fault Simulation System). VECROsim supports flexible microservice topology and scenario-rich fault injection and comes with built-in performance metrics collection capability. Here you will find how to use VECROsim to design and deploy a microservice system, inject faults and collect metrics.
+### A Versatile Metric-oriented Microservice Fault Simulation System
 
-#### To cite this work:
+**ISSRE 2022 · Tools and Artifact Track**  
+[Paper](https://doi.org/10.1109/ISSRE55969.2022.00037) · [Service image](https://github.com/etigerstudio/vecro-base) · [MongoDB image](https://github.com/etigerstudio/vecro-mongodb)
 
-```tex
+VECROsim is a configurable microservice fault simulator for performance-metric research. A YAML definition describes services, their workloads and calling relationships; Kubernetes runs the system, and Prometheus records its behavior under request load and injected faults. The resulting time series support root cause analysis and other studies of complex systems.
+
+The paper releases **Social9**: 25 services, seven metric families sampled at 1 Hz, and nine fault scenarios varying duration, strength, jitter and fault location. [Download Social9](https://github.com/etigerstudio/VECROsim/releases/tag/social9-dataset).
+
+[Demo](#demo-nine-fault-scenarios) · [Social9 topology](#social9-topology) · [Framework](#vecrosim-framework) · [Quick start](#quick-start-the-social-example) · [Configuration](#configuration-reference) · [Citation](#citation)
+
+## Demo: nine fault scenarios
+
+![Nine Social9 fault scenarios with average latency, p95 latency and payload throughput, redrawn from the released data](assets/social9-metrics-redrawn.png)
+
+**Figure 10. Metric responses across nine Social9 fault scenarios.** Rows show the baseline and eight variations in fault duration, delay strength, jitter or target depth. Columns show average latency, p95 latency and payload throughput; colors identify the five services named in the legend. Shading marks the configured fault window, beginning at 20 minutes and lasting 5, 15 or 30 minutes according to the scenario. The baseline delays `posts-storage-db` by 400 ms for 15 minutes with 150 ms jitter. The shallow-target case affects `write-graph`; the deep-target case delays the agent-to-MongoDB loopback connection.
+
+*Figure notes:* Replotted from the [released Social9 dataset](https://github.com/etigerstudio/VECROsim/releases/tag/social9-dataset), using `social_latency_avg.csv`, `social_latency_p95.csv` and `social_throughput.csv`. Original 1 Hz observations are retained without smoothing or interpolation. Time is measured from the start of each recording; latency is in **seconds**, and throughput is in **kB/s** (1 kB = 1,000 bytes). Axis scales are shared within each metric column. Each curve stops when its recording ends; blank tails are not zero-valued observations. The full 70-minute long-duration recording is included.
+
+[Vector redraw](assets/social9-metrics-redrawn.pdf) · [Original Figure 10](assets/social9-metrics.png) · [Social9 dataset](https://github.com/etigerstudio/VECROsim/releases/tag/social9-dataset)
+
+## Social9 topology
+
+![Social9 microservice topology from paper Figure 9](assets/social9-topology.png)
+
+**Paper Figure 9.** Social9 has 25 services: 12 front-end logic services (blue), eight intermediate logic services (gray) and five MongoDB services (purple). An arrow from A to B means A calls B. The highlighted `posts-storage-db` is the target of the baseline network-delay fault.
+
+## VECROsim framework
+
+![VECROsim architecture from paper Figure 1](assets/framework.png)
+
+**Paper Figure 1.** A simulation schema specifies the system, request load, fault and metrics. The simulation controller coordinates deployment, load generation, fault injection and metric collection around the compute cluster, producing the performance-metric dataset.
+
+## What you can configure
+
+| Component | What it controls | Entry point |
+| --- | --- | --- |
+| Topology | Services, replicas, service types and downstream calls | `deploy/base/social.yaml` |
+| Workload | CPU, I/O, memory, response payload and MongoDB reads/writes | `deploy/base/workload.go` |
+| Request load | Concurrent users, request spacing and experiment duration | `load/` |
+| Fault scenario | Network delay/loss/rate and CPU/I/O stress | `inject/` |
+| Observation | Application and container metrics exported as CSV | `metrics/social_collect.py` |
+
+The released deployer implements **base** and **MongoDB** services. The two service images live in separate repositories; cloning this repository alone does not provide their source. The included Social example has 25 services, including five MongoDB services.
+
+## Quick start: the Social example
+
+These commands describe the released layout and assume Linux/macOS, Go, Docker, `kubectl`, a configured Kubernetes cluster and **linux/amd64 worker nodes**. Adjust the binary architecture for other workers. Install Chaos Mesh separately if you use the supplied `NetworkChaos` example. For a local cluster, the image-loading commands below use Minikube.
+
+### 1. Obtain the three repositories and build the images
+
+```bash
+git clone https://github.com/etigerstudio/VECROsim.git
+git clone https://github.com/etigerstudio/vecro-base.git
+git clone https://github.com/etigerstudio/vecro-mongodb.git
+
+(cd vecro-base && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o vecro-base .)
+docker build -t vecro-base:v1 ./vecro-base
+
+(cd vecro-mongodb && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o vecro-mongodb .)
+docker build -t vecro-mongodb:v1 ./vecro-mongodb
+
+minikube image load vecro-base:v1
+minikube image load vecro-mongodb:v1
+cd VECROsim
+```
+
+For other clusters, make the images available to the worker nodes. The deployer currently uses the fixed names `vecro-base:v1`, `vecro-mongodb:v1` and `mongo:4.2`; registry-qualified names require adapting `deploy/base/deploy.go`.
+
+### 2. Set up monitoring and deploy services
+
+```bash
+(cd metrics/setup && bash setup.sh)
+kubectl create namespace social
+kubectl create configmap mongo-initjs -n social --from-file=mongo-init.js=../vecro-mongodb/mongo-init.js
+
+(cd deploy && go run . -deffile base/social.yaml)
+kubectl apply -f deploy/base/social-monitor.yaml
+kubectl get pods -n social
+```
+
+Wait for the services to become ready before sending requests. The namespace and MongoDB initialization ConfigMap are required by the released deployer. Monitoring setup must run from `metrics/setup/` because its script uses relative manifest paths.
+
+### 3. Apply load and inject the supplied delay fault
+
+In one terminal, expose the frontend:
+
+```bash
+kubectl port-forward -n social svc/social-text 8080:80
+```
+
+In a second terminal, from the repository root:
+
+```bash
+(cd load && go run . -delay 100ms -duration 2h -users 5 -url "http://localhost:8080")
+```
+
+After collecting a normal baseline, apply the supplied Chaos Mesh fault in another terminal:
+
+```bash
+kubectl apply -f inject/social-delay.yaml
+```
+
+This manifest targets **`posts-storage-db`** with **400 ms latency**, **150 ms jitter** and a **30-minute duration**. It uses Chaos Mesh's CRD, rather than the legacy Go injector's configuration format.
+
+### 4. Export metrics
+
+Expose Prometheus in a separate terminal:
+
+```bash
+kubectl port-forward -n monitoring svc/prometheus-k8s 9091:9090
+```
+
+The collector requires `pandas` and `prometheus-api-client`. Before running it, set `start_time`, `end_time` and `filepath` in `metrics/social_collect.py` to the window and destination of your experiment, and create the destination directory.
+
+```bash
+python -m pip install pandas prometheus-api-client
+mkdir -p social-delay/jitter_high
+python metrics/social_collect.py
+```
+
+The script exports one CSV per metric family, with service names as columns. It includes latency, throughput, CPU, memory and network metrics. **Check the PromQL names first:** the collector retains a `ben_base_social_*` prefix, while the current companion service images expose `vecro_base_social_*`. Adapt the three application-metric queries to your deployed images. The collector expects exactly one returned series per service and query.
+
+## Repository map
+
+```text
+deploy/     YAML-driven Kubernetes deployment; Social and Alphabet examples
+load/       concurrent request generator
+inject/     legacy Go injector plus separate Chaos Mesh example manifests
+metrics/    monitoring manifests and Prometheus-to-CSV collector
+cmd/        additional command entry point
+```
+
+## Configuration reference
+
+A system definition declares the graph of service calls. For example:
+
+```yaml
+name: example
+replicas: 1
+namespace: example
+services:
+  - name: frontend
+    type: base
+    workload:
+      cpu: 1
+      memory: 16
+      net: 256
+    calls:
+      - storage
+  - name: storage
+    type: mongodb
+    workload:
+      read: 1
+      write: 1
+```
+
+| Service type | Implemented workload fields |
+| --- | --- |
+| `base` | `cpu`, `io`, `memory`, `net`, `delay` |
+| `mongodb` | `read`, `write` |
+
+The legacy Go injector accepts `name`, `namespace` and a `faults` list, with a target, start time, duration and behaviors (`net-delay`, `net-loss`, `net-rate`, `cpu-stress`, `io-stress`). It uses Pumba and Docker-oriented container access; its runtime requirements differ from the Chaos Mesh manifests. See `inject/simple.yaml` and `inject/faults/` before choosing that route.
+
+The main commands accept `-deffile` for YAML configuration and `-kubeconfig` for a non-default Kubernetes configuration. The load generator accepts `-url`, `-users`, `-delay`, `-duration` and `-body`.
+
+## Citation
+
+```bibtex
 @inproceedings{bi2022vecrosim,
   title={VECROsim: A Versatile Metric-oriented Microservice Fault Simulation System (Tools and Artifact Track)},
   author={Bi, Tingzhu and Pan, Yicheng and Jiang, Xinrui and Ma, Meng and Wang, Ping},
   booktitle={2022 IEEE 33rd International Symposium on Software Reliability Engineering (ISSRE)},
   pages={297--308},
   year={2022},
-  organization={IEEE}
+  doi={10.1109/ISSRE55969.2022.00037}
 }
 ```
-
-# Quick Start Guide
-
-## Prerequisite
-
-One PC with Kubernetes properly installed and configured. 
-
-Linux/Mac operating systems are supported.
-
-Active Internet connection (possibly need for pulling images).
-
-## Install Monitoring Infrastructure
-
-Currently VECROsim does not support automatically install the `kube-prometheus` monitoring infrastructure. Execute the following command to setup the monitoring infrastructure.
-
-```
-./VECROSim/metrics/setup/setup.sh
-```
-
-## Build VECROsim Container Images
-
-Build and upload `vecro-base` and `vecro-mongodb`:
-
-```shell
-cd ./vecro-base
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o vecro-base .
-docker build -t vecro-base:v1 # Use proper docker enviroment to build and upload the image
-```
-
-```shell
-cd ./vecro-mongodb
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o vecro-mongodb .
-docker build -t vecro-mongodb:v1 # Use proper docker enviroment to build and upload the image
-```
-
-## Deploy Microservice System
-
-Create a `Kubernetes` namespace and deploy the `Social` microservice system onto it:
-
-```shell
-cd ./VECROSim/deploy
-kubectl create namespace social # Create the k8s namespace for Social to deploy on
-go run . -deffile base/social.yaml # Deploy Social system in the cluster
-```
-
-Create the service monitor for `social` namespace to enable metrics collecting:
-
-```shell
-kubectl apply -f base/social-monitor.yaml # Install Prometheus monitor for Social system
-```
-
-## Apply User-side Load
-
-Expose the `text` front-end service and apply a 2-hour load to the service.
-
-```shell
-kubectl port-forward -n social svc/social-text 8080:80 > /dev/null & # Make 'text' service accessible at http://localhost:8080
-cd ./VECROSim/load
-go run . -delay 100ms -duration 2h -users 5 -url "http://localhost:8080
-```
-
-## Inject Faults
-
-Inject the a `network delay` fault (`3 minutes` `500ms` network delay to service `posts-storage`) to the system.
-
-```shell
-kubectl apply -f ./VECROSim/inject/social-delay.yaml # Inject network delay fault to the deployed system
-```
-
-## Generate Datasets
-
-Now you could generate CSV file datasets. 
-
-```shell
-python ./VECROSim/metrics/collect_social.py # Use python script to communicate with Prometheus to download and generate dataset
-```
-
-You may need configure the timestamps of collection range in the script first, please refer to Command Manual for details
-
-# Source Code Structure
-
-## VECROsim
-
-- `deploy`: the service deployer module.
-- `inject`: the fault injector module. 2 example fault configuration are also included.
-- `load`: the user-side load generator module. 
-- `metrics`: the metrics infrastructure setup and collector scripts. 
-
-## Images
-
-- `vecro-base`: the image for logic services. Repo url: https://github.com/etigerstudio/vecro-base
-- `vecro-mongodb`: the image for concrete service MongoDB. Repo url: https://github.com/etigerstudio/vecro-mongodb
-
-# Command Manual
-
-## deploy
-
-`deploy` command deploys a microservice `system definition`(see Configuration Reference) in  `deffile`. Use `kubeconfig` argument to specify config file for `kubectl` manually.
-
-All arguments of `deploy`:
-
-```shell
--deffile string
-    	path to system definition file
--kubeconfig string
-    	(optional) absolute path to the kubeconfig file (default "~/.kube/config")
-```
-
-This command is built in `Go`, and to run it you could either run `go build` to first build the executable binary or `go run` to directly build and run the command. 
-
-Example:
-
-```shell
-./deploy -deffile your-system.yaml
-```
-
-## inject
-
-`inject` command inject a fault defined in `fault definition`(see Configuration Reference) in  `deffile`. `duration` sets how long should the fault injection controller run for. Use `kubeconfig` argument to specify config file for `kubectl` manually.
-
-All arguments of `inject`:
-
-```shell
--deffile string
-    	path to fault definition file
--duration duration
-    	Duration of this round of fault simulation
--kubeconfig string
-    	(optional) absolute path to the kubeconfig file (default "~/.kube/config")
-```
-
-This command is built in `Go`, and to run it you could either run `go build` to first build the executable binary or `go run` to directly build and run the command. 
-
-Example:
-
-```shell
-./inject -deffile social-delay.yaml -duration 30m
-```
-
-## load
-
-`load` command apply a simulated load that repeats request on one or more `urls`, every time a `delay` has elapsed, for a total `duration`. `users` sets number of concurrent goroutine to simulate multiple users at one time. `body` sets a static text request body for every request to be sent.
-
-```shell
--body string
-    	Request body
--delay duration
-    	Delay between calls per user (ms) (default 1s)
--duration duration
-    	Duration of this load simulation
--url string
-    	URLs to perform requests on.
-    	Separate each URLs by a whitespace if there're multiple URLs to request on.
-    	 (default "http://127.0.0.1")
--users int
-    	Number of concurrent users (default 1)
-```
-
-This command is built in `Go`, and to run it you could either run `go build` to first build the executable binary or `go run` to directly build and run the command. 
-
-Example:
-
-```shell
-./load -delay 100ms -duration 2h -users 5 -url "http://localhost:8080 http://localhost:8081 http://localhost:8082"
-```
-
-Apply a load that simulate `5` users repeated request concurrently on `http://localhost:8080`, `http://localhost:8081`, `http://localhost:8082` every `100ms` for `2h`.
-
-## metrics
-
-### Metrics Infrastructure Setup
-
-Currently VECROsim does not support automatically install the `kube-prometheus` monitoring infrastructure. `metrics` folder contains necessary monitoring infrastructure config files and one-key setup/remove shell scripts.
-
-To install `kube-prometheus` monitoring infrastructure to current `Kubernetes` cluster:
-
-```shell
-./setup/setup.sh
-```
-
-Typical installation would take `3 to 10 minutes`for images to be pulled down.
-
-To remove `kube-prometheus` monitoring infrastructure to current `Kubernetes` cluster:
-
-```shell
-./setup/teardown.sh
-```
-
-### Export Metrics to Dataset Files
-
-We provide a sample metrics collection script `social_collect.py`  for the `Social` system. To configure the timestamps of collection range, the URL of Prometheus API, etc., modify these lines in the script:
-
-```shell
-prometheus_host_url = "http://127.0.0.1:9091/" # The URL of Prometheus API
-
-start_time = parse_datetime("2022-05-22 00:00:00") # The start time of collection
-end_time = parse_datetime("2022-05-22 01:00:00") # The end time of collection
-
-step = "1s" # Sample resolution
-filepath = "social-delay/jitter_high" # Path to save CSV files
-```
-
-To run the script:
-
-```shell
-python social_collect.py
-```
-
-# Configuration Reference
-
-## System Definition
-
-A microservice `system definition` is a YAML file that define `configuration` of every service and calling `topology` of the system.
-
-Take first 20 lines of the `Social` microservice system as an example:
-
-```yaml
-name: social # System name identifier
-replicas: 1 # Replica count for every service
-namespace: social # Kubernetes namespace this system should be deployed in
-services: # Contains a list of services
-  - name: follow-user
-    type: base # Service image type
-    workload: # Define service workload (Optional)
-      cpu: 1
-      net: 256
-    calls: # Contains a list of
-           # down-stream services (Optional)
-      - user-info
-  - name: recommender
-    type: base
-    workload:
-      cpu: 1
-      memory: 16
-      net: 512
-    calls:
-      - user-info
-      - posts-storage
-```
-
-Every `service` entry you define under `services` will be deployed to the `Kubernetes` cluster. 
-
-`type`  of a `service` sets its the service docker image. Available: `base`, `mongodb`, `mysql`, `redis`. The following are details of each type of service type:
-
-| `type`    | `Description`                     | `Supported workload`      |
-| --------- | --------------------------------- | ------------------------- |
-| `base`    | Generic image of  `logic` service | `cpu`, `io`, `net`, `mem` |
-| `mongodb` | `Concrete` service MongoDB        | `read`, `write`           |
-| `mysql`   | `Concrete` service MySQL          | `read`, `write`           |
-| `redis`   | `Concrete` service Redis          | `read`, `write`           |
-
-`workload`  of a `service` sets its the workload definition. Different service type support different workload types. Please refer to above table for valid workload types. 
-
-`calls`  of a `service` sets its down-stream service list to call when itself get request docker image. Each entry in call list should be a valid `name` defined in the `services` list.
-
-## Fault Definition
-
-A microservice `fault definition` is a YAML file that define `configuration` of expected faults to be injected into the microservice system.
-
-Take first 20 lines of the `base/simple.yaml` fault definition as an example:
-
-```yaml
-name: example # Fault definition name identifier
-namespace: example # Kubernetes namespace the system is deployed in
-faults: # Contains a list of faults
-  - name: frontend-downgrade # Fault name
-    target: frontend # Fault injection target
-    start: 30s # Fault start time
-    duration: 45s # Fault duration
-    behaviors: # Contains a list of fault behaviors
-      net-delay: # Fault behavior and its detailed parameters
-        time: 300ms
-        jitter: 50ms
-  - name: auth-downgrade
-    target: auth
-    start: 2min
-    duration: 45s
-    behaviors:
-      cpu-stress:
-        load: 100
-```
-
-`behaviors` are a list of fault `behavior`. The following are details of each type of fault behaviors:
-
-| `type`    | `Description`                     | `Supported parameters`      |
-| --------- | --------------------------------- | ------------------------- |
-| `net-delay`    | Network ingress delay | `time`, `jitter` |
-| `net-loss` | Network loss       | `Percent`          |
-| `net-rate`   | Network rate limit          | `Rate`           |
-| `io-stress`   | Disk workload I/O stressing          | `Method`           |
-| `cpu-stress`   | CPU workload stressing         | `Load`, `Method`           |
